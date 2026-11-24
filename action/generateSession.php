@@ -12,7 +12,7 @@ isDirect();
 if (isset($_POST['itemID']) AND !empty($_POST['itemID']) AND isset($_POST['itemAction'])) {
     if (!is_array($_POST['itemID'])) {
       // make an array
-      $_POST['itemID'] = array((integer)$_POST['itemID']);
+      $_POST['itemID'] = array((int) $_POST['itemID']);
     }
     // loop array
     if (isset($_SESSION['mix_barcodes'])) {

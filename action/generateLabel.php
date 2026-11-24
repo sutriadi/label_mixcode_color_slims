@@ -22,12 +22,16 @@ if (isset($_GET['action']) AND $_GET['action'] == 'print') {
 
   // global settings
   $globalSettings = $sysconf['lbc_settings'];
-  // set settings per Template
-  $settingsTemplate = $sysconf['lbc_' . strtolower($globalSettings['template']) . 'Code'];
+  // nama template (left/right/both). Hanya nilai ini yang boleh dipakai sebagai nama file.
+  $templateName = strtolower(trim((string) ($globalSettings['template'] ?? '')));
+  // set settings per Template (?? agar tidak warning "Undefined array key" di PHP 8)
+  $settingsTemplate = in_array($templateName, ['left', 'right', 'both'], true)
+                    ? ($sysconf['lbc_' . $templateName . 'Code'] ?? null)
+                    : null;
   // color pallet
   $palletColor = $sysconf['lbc_color'];
   // set Template dir
-  $templateDir = __DIR__.'/../template/'.strtolower($globalSettings['template']) . 'Code_template.php';
+  $templateDir = __DIR__.'/../template/' . $templateName . 'Code_template.php';
 
   if (!isset($settingsTemplate))
   {
@@ -44,12 +48,14 @@ if (isset($_GET['action']) AND $_GET['action'] == 'print') {
   // concat all ID together
   $item_ids = '';
   foreach ($_SESSION['mix_barcodes'] as $id) {
-    $item_ids .= '\''.$id.'\',';
+    $item_ids .= '\''.$dbs->escape_string((string) $id).'\',';
   }
   // strip the last comma
   $item_ids = substr_replace($item_ids, '', -1);
   // send query to database
-  $item_q = $dbs->query('SELECT b.title, i.item_code, i.call_number, b.biblio_id FROM item AS i
+  // Nomor panggil: pakai milik eksemplar (item) bila terisi, jika kosong pakai nomor panggil
+  // bibliografi. Di SLiMS nomor panggil umumnya diinput pada data bibliografi.
+  $item_q = $dbs->query('SELECT b.title, i.item_code, COALESCE(NULLIF(TRIM(i.call_number), \'\'), b.call_number) AS call_number, b.biblio_id FROM item AS i
     LEFT JOIN biblio AS b ON i.biblio_id=b.biblio_id
     WHERE i.item_code IN('.$item_ids.')');
   $item_data_array = array();
@@ -63,10 +69,11 @@ if (isset($_GET['action']) AND $_GET['action'] == 'print') {
   $allData = count($item_data_array);
 
   // chunk barcode array
-  $chunked_barcode_arrays = array_chunk($item_data_array, $globalSettings['chunk']);
+  // (array_chunk melempar ValueError di PHP 8 bila ukuran < 1)
+  $chunked_barcode_arrays = array_chunk($item_data_array, max(1, (int) ($globalSettings['chunk'] ?? 1)));
   
   // include main template
-  include __DIR__.'/../template/'.strtolower($globalSettings['template']) . 'Code_template.php';
+  include $templateDir;
 
   // unset the session
   unset($_SESSION['mix_barcodes']);
