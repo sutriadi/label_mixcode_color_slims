@@ -11,4 +11,4 @@ Choose your label color self
 
 ### System Requirement
 * SLiMS >= 9.3.X
-* PHP = 7.4
+* PHP >= 7.4 (sudah diuji pada PHP 8.1 - 8.3)

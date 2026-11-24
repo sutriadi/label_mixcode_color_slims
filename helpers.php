@@ -9,7 +9,9 @@
 
 function httpQuery(array $query = [])
 {
-    return http_build_query(array_unique(array_merge($_GET, $query)));
+    // array_unique() dihapus: pada PHP 8 ia memicu warning "Array to string conversion"
+    // untuk parameter berbentuk array, dan sempat membuang parameter yang nilainya sama.
+    return http_build_query(array_merge($_GET, $query));
 }
 
 function isDirect()
@@ -64,26 +66,43 @@ function jsonResponse($mix)
 
 function jsonPost($key = '')
 {
-    $post = json_decode(file_get_contents('php://input'), TRUE);
+    $post = json_decode((string) file_get_contents('php://input'), TRUE);
+
+    // json_decode() mengembalikan null untuk body kosong/tidak valid. Jadikan array
+    // agar kode lain (count(), foreach, dll) tidak TypeError di PHP 8.
+    if (!is_array($post)) $post = [];
 
     return (!empty($key) && isset($post[$key])) ? $post[$key] : $post;
 }
 
+/**
+ * Ubah nilai pengaturan (bisa string kosong/teks dari form) menjadi angka.
+ * Pada PHP 8 operasi aritmatika dengan string non-numerik melempar TypeError.
+ */
+function toNumber($value, $default = 0)
+{
+    return is_numeric($value) ? $value + 0 : $default;
+}
+
 function sliceCallNumber($string)
 {
-    if (empty($string))
+    $string = trim((string) $string);
+
+    if ($string === '')
     {
         return '<b style="color: red">callnumbernya<br/>dimana<br/>udah dimasukin belum di data itemnya?</b>';
     }
 
     $split = preg_split('/(?<=\w)\s+(?=[A-Za-z])/m', $string);
+    if ($split === false) $split = [$string];
     $result = '';
     
     foreach ($split as $index => $stringSplit) {
         if ($index === 0 && preg_match('/[A-Za-z]/i', substr($stringSplit, 0,1)))
         {
             $Plus = explode(' ', $stringSplit);
-            $result .= $Plus[0] . '<br/>' . $Plus[1] . '<br/>';
+            // Nomor panggil satu kata (mis. "FIK") tidak punya $Plus[1]
+            $result .= $Plus[0] . '<br/>' . (isset($Plus[1]) ? $Plus[1] . '<br/>' : '');
         }
         else
         {
@@ -96,6 +115,7 @@ function sliceCallNumber($string)
 
 function callNumberColor($string, $arrayColor)
 {
+    $string = (string) $string;
     $callNumber = substr(trim($string), 0,1);
 
     if (!preg_match('/[0-9]/i', $callNumber))

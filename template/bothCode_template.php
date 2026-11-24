@@ -52,10 +52,12 @@ ob_start();
             <button class="bg-green-500 p-1 text-white" onClick="self.print()">Print</button>
             <div class="w-full rounded-lg block my-3 p-3 font-bold bg-yellow-300 text-gray-800">Qrcode untuk posisi kanan dan kiri belum tersedia.</div>
             <?php
+            // pisah halaman tiap N baris (0/kosong = tanpa pisah halaman; modulo 0 error di PHP 8)
+            $pageBreakAt = (int) ($globalSettings['pageBreakAt'] ?? 0);
             // set row
             $row = 0;
             // conver comma to dot
-            $responsiveWidth = commaToDot(($settingsTemplate['widthBox'] - 11));
+            $responsiveWidth = commaToDot((toNumber($settingsTemplate['widthBox']) - 11));
             // loop chunked barcode
             foreach ($chunked_barcode_arrays as $barcode_array):
                 // set flex wrap
@@ -64,7 +66,7 @@ ob_start();
                     // slicing number
                     $callNumber = sliceCallNumber($barcode['call_number']);
                     // shorting and slice it
-                    $titleSlice = substr($barcode['title'], 0,5);
+                    $titleSlice = mb_substr((string) $barcode['title'], 0, 5);
                     // get color
                     $color = callNumberColor($barcode['call_number'], $palletColor);
                     // set template
@@ -89,7 +91,7 @@ ob_start();
                 $row++;
                 echo '</div>';
                 // set page break
-                echo (($row % $globalSettings['pageBreakAt']) === 0) ? '<div class="pagebreak"></div>' : null;
+                echo ($pageBreakAt > 0 && ($row % $pageBreakAt) === 0) ? '<div class="pagebreak"></div>' : null;
             endforeach; 
             ?>
         </div>

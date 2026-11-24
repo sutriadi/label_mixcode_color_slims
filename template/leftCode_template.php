@@ -51,6 +51,8 @@ ob_start();
         <div class="w-full h-screen">
             <button class="bg-green-500 p-1 text-white" onClick="self.print()">Print</button>
             <?php
+            // pisah halaman tiap N baris (0/kosong = tanpa pisah halaman; modulo 0 error di PHP 8)
+            $pageBreakAt = (int) ($globalSettings['pageBreakAt'] ?? 0);
             // set row
             $row = 0;
             $rowData = 0;
@@ -62,14 +64,14 @@ ob_start();
                     // slicing number
                     $callNumber = sliceCallNumber($barcode['call_number']);
                     // shorting and slice it
-                    $titleSlice = substr($barcode['title'], 0,5);
+                    $titleSlice = mb_substr((string) $barcode['title'], 0, 5);
                     // get color
                     $color = callNumberColor($barcode['call_number'], $palletColor);
                     // set template
                     // Barcode
                     if ($globalSettings['codeType'] === 'Barcode'):
                         // conver comma to dot
-                        $responsiveWidth = commaToDot(($settingsTemplate['widthBox'] - 5.4));
+                        $responsiveWidth = commaToDot((toNumber($settingsTemplate['widthBox']) - 5.4));
                         echo <<<HTML
                             <div style="width:{$settingsTemplate['widthBox']}em; height: {$settingsTemplate['heightBox']}em; border: 1px solid black; margin-left: 8px; margin-top: 10px">
                                 <div class="inline-block float-left mr-2" style="width: 75px;">
@@ -86,14 +88,14 @@ ob_start();
                         // set image and div selector id based row data
                         $rowId = ($rowData+1); 
                         // conver comma to dot
-                        $responsiveWidth1 = commaToDot(($settingsTemplate['widthBox'] + 4));
-                        $responsiveWidth2 = commaToDot(($settingsTemplate['widthBox'] - 5.4));
-                        $widthQrcode = commaToDot($settingsTemplate['widthBarcode'] - 1);
-                        $heightQrcode = commaToDot($settingsTemplate['heightBarcode'] + 2);
-                        $marginTop = commaToDot($settingsTemplate['topBarcode'] - 1);
+                        $responsiveWidth1 = commaToDot((toNumber($settingsTemplate['widthBox']) + 4));
+                        $responsiveWidth2 = commaToDot((toNumber($settingsTemplate['widthBox']) - 5.4));
+                        $widthQrcode = commaToDot(toNumber($settingsTemplate['widthBarcode']) - 1);
+                        $heightQrcode = commaToDot(toNumber($settingsTemplate['heightBarcode']) + 2);
+                        $marginTop = commaToDot(toNumber($settingsTemplate['topBarcode']) - 1);
                         // special measure ment
                         $num = ($rowId === $allData) ? 2.61 : 2.10;
-                        $marginLeft = commaToDot($settingsTemplate['leftBarcode'] + $num);
+                        $marginLeft = commaToDot(toNumber($settingsTemplate['leftBarcode']) + $num);
                         echo <<<HTML
                             <div style="width:{$responsiveWidth1}em; height: {$settingsTemplate['heightBox']}em; border: 1px solid black; margin-left: 8px; margin-top: 10px">
                                 <div class="inline-block" style="width: {$responsiveWidth2}em ;height: {$settingsTemplate['heightBox']}em; border-left: 1px solid black">
@@ -114,7 +116,7 @@ ob_start();
                 $row++;
                 echo '</div>';
                 // set page break
-                echo (($row % $globalSettings['pageBreakAt']) === 0) ? '<div class="pagebreak"></div>' : null;
+                echo ($pageBreakAt > 0 && ($row % $pageBreakAt) === 0) ? '<div class="pagebreak"></div>' : null;
             endforeach; 
             ?>
         </div>

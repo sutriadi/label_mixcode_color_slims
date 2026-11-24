@@ -140,7 +140,7 @@ $datagrid = new simbio_datagrid();
  $datagrid->setSQLColumn('item.item_code',
  'item.item_code AS \''.__('Item Code').'\'',
  'index.title AS \''.__('Title').'\'',
- 'item.call_number AS \'Nomor Panggil\'');
+ 'COALESCE(NULLIF(TRIM(item.call_number), \'\'), `index`.call_number) AS \'Nomor Panggil\'');
 
 $datagrid->setSQLorder('item.last_update DESC');
 
